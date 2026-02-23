@@ -5,10 +5,18 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
+        "dev:server": "node server/index.js",
+        "dev:all": "run-p dev dev:server",
         "build": "tsc -b && vite build",
         "preview": "vite preview"
     },
     "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.21.0",
+        "dotenv": "^16.4.5",
+    "express-session": "^1.18.1",
+        "openai": "^4.72.0",
+        "npm-run-all": "^4.1.5",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "@progress/kendo-data-query": "^1.7.1",

@@ -1,3 +1,7 @@
+html {
+  font-size: 120%;
+}
+
 :root {
   font-family: Roboto, sans-serif;
   line-height: 1.5;

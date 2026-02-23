@@ -1,50 +1,29 @@
-# React + TypeScript + Vite
+# PlaylistGenerator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Generate Spotify playlists from natural language using ChatGPT.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## Expanding the ESLint configuration
+2. **Configure environment**
+   - Copy `.env.example` to `.env`
+   - Add your `OPENAI_API_KEY` (required for song generation)
+   - Add `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` from the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+   - In your Spotify app settings, set Redirect URI to `http://localhost:3001/api/spotify/callback`
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+3. **Run the app**
+   - Terminal 1: `npm run dev` (Vite frontend on :5173)
+   - Terminal 2: `npm run dev:server` (API on :3001)
+   - Or: `npm run dev:all` (requires `npm-run-all`)
 
-- Configure the top-level `parserOptions` property like this:
+## How it works
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
-
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+1. Type a mood, genre, or description (e.g. "chill indie for a rainy day")
+2. Click **Generate** to get song suggestions from ChatGPT
+3. Uncheck any songs you want to exclude
+4. Optionally run a **New search** to add more songs
+5. Click **Create Spotify playlist** — you’ll be prompted to log in with Spotify, then your playlist is created and embedded
