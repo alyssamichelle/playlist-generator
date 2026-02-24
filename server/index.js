@@ -16,7 +16,22 @@ import session from "express-session";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+// CORS: allow frontend (Netlify + local dev). Required when client and API are on different origins.
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 app.use(express.json());
 app.use(
   session({
@@ -35,6 +50,7 @@ const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI =
   process.env.SPOTIFY_REDIRECT_URI || "http://localhost:3001/api/spotify/callback";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 /** Generate song suggestions from a prompt using OpenAI */
 app.post("/api/generate", async (req, res) => {
@@ -115,7 +131,7 @@ app.get("/api/spotify/auth", (req, res) => {
 app.get("/api/spotify/callback", async (req, res) => {
   const { code } = req.query;
   if (!code || !SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-    return res.redirect("/?spotify_error=config");
+    return res.redirect(`${FRONTEND_URL}/?spotify_error=config`);
   }
   try {
     const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
@@ -140,7 +156,7 @@ app.get("/api/spotify/callback", async (req, res) => {
   } catch (e) {
     console.error("Spotify token exchange:", e);
   }
-  res.redirect("http://localhost:5173/?spotify_authenticated=1");
+  res.redirect(`${FRONTEND_URL}/?spotify_authenticated=1`);
 });
 
 /** Create Spotify playlist from track list */

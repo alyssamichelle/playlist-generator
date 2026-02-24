@@ -4,7 +4,7 @@
 
 import type { Track } from "../types";
 
-const API_BASE = "";
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 export async function generateTracks(prompt: string): Promise<Track[]> {
   const res = await fetch(`${API_BASE}/api/generate`, {

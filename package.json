@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "vite",
         "dev:server": "node server/index.js",
+        "start": "node server/index.js",
         "dev:all": "run-p dev dev:server",
         "build": "tsc -b && vite build",
         "preview": "vite preview"
