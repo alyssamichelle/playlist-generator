@@ -8,6 +8,10 @@ export interface Track {
   artist: string;
   album: string;
   year?: number;
+  /** 0–100 score from OpenAI indicating how well this matches the prompt */
+  confidence?: number;
+  /** OpenAI's explanation for why this track fits the prompt */
+  reason?: string;
   /** Spotify URI, populated when we resolve the track for playlist creation */
   spotifyUri?: string;
 }
