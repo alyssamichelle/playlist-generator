@@ -45,7 +45,7 @@ router.get("/status", async (req, res) => {
     return res.json({
       authenticated: true,
       isCompanyAccount: true,
-      displayName: "Kendo UI",
+      displayName: "Kendo UI's Spotify",
     });
   }
 

@@ -91,10 +91,8 @@ export default function PlaylistActions({
           {isSubmitting
             ? (playlistMode === "existing" ? "Updating…" : "Creating…")
             : (playlistMode === "existing"
-              ? "Add to playlist"
-              : isCompanyAccount
-                ? "Add to our playlist"
-                : "Create Spotify playlist")
+              ? "Add to Playlist"
+              : "Create Playlist")
           }
         </Button>
       ) : (
