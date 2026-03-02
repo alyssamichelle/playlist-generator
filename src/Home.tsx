@@ -111,7 +111,12 @@ export default function Home() {
   return (
     <>
       <AppBar position="top">
-        <AppBarSection>PlaylistGenerator</AppBarSection>
+        <AppBarSection>
+          <a href="/" className="appbar-logo" aria-label="Playlist Generator home">
+            <img src="/favicon.png" alt="" className="appbar-logo-img" />
+            <span>Playlist Generator</span>
+          </a>
+        </AppBarSection>
         <AppBarSection className="appbar-spacer" />
         <AppBarSection>
           {spotifyStatus.authenticated ? (

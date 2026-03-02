@@ -92,6 +92,25 @@
   color: var(--kendo-color-subtle, #666);
 }
 
+.appbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.appbar-logo:hover {
+  opacity: 0.85;
+}
+
+.appbar-logo-img {
+  height: 35px;
+  object-fit: contain;
+}
+
 .appbar-spacer {
   flex: 1;
 }
