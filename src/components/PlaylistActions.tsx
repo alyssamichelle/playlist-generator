@@ -7,6 +7,7 @@ import type { SpotifyPlaylist } from "../api/client";
 
 interface PlaylistActionsProps {
   spotifyAuthed: boolean;
+  isCompanyAccount?: boolean;
   playlistMode: "new" | "existing";
   onPlaylistModeChange: (mode: "new" | "existing") => void;
   playlistName: string;
@@ -21,6 +22,7 @@ interface PlaylistActionsProps {
 
 export default function PlaylistActions({
   spotifyAuthed,
+  isCompanyAccount = false,
   playlistMode,
   onPlaylistModeChange,
   playlistName,
@@ -34,7 +36,7 @@ export default function PlaylistActions({
 }: PlaylistActionsProps) {
   return (
     <div className="action-buttons">
-      {userPlaylists.length > 0 && (
+      {userPlaylists.length > 0 && !isCompanyAccount && (
         <RadioGroup
           data={[
             { label: "New playlist", value: "new" },
@@ -88,7 +90,11 @@ export default function PlaylistActions({
         >
           {isSubmitting
             ? (playlistMode === "existing" ? "Updating…" : "Creating…")
-            : (playlistMode === "existing" ? "Add to playlist" : "Create Spotify playlist")
+            : (playlistMode === "existing"
+              ? "Add to playlist"
+              : isCompanyAccount
+                ? "Add to our playlist"
+                : "Create Spotify playlist")
           }
         </Button>
       ) : (

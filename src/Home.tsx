@@ -40,6 +40,7 @@ export default function Home() {
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [creatingPlaylist, setCreatingPlaylist] = useState(false);
   const [spotifyStatus, setSpotifyStatus] = useState<SpotifyStatus>({ authenticated: false });
+  const [spotifyStatusLoading, setSpotifyStatusLoading] = useState(true);
   const [appendMode, setAppendMode] = useState(false);
   const [playlistMode, setPlaylistMode] = useState<"new" | "existing">("new");
   const [playlistName, setPlaylistName] = useState("");
@@ -48,15 +49,17 @@ export default function Home() {
 
   useEffect(() => {
     consumeSpotifyTokenFromUrl();
-    getSpotifyStatus().then((status) => {
-      setSpotifyStatus(status);
-      if (status.authenticated) {
-        getUserPlaylists().then((playlists) => {
-          setUserPlaylists(playlists);
-          if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
-        });
-      }
-    });
+    getSpotifyStatus()
+      .then((status) => {
+        setSpotifyStatus(status);
+        if (status.authenticated && !status.isCompanyAccount) {
+          return getUserPlaylists().then((playlists) => {
+            setUserPlaylists(playlists);
+            if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
+          });
+        }
+      })
+      .finally(() => setSpotifyStatusLoading(false));
   }, []);
 
   const handleSearch = useCallback(async (prompt: string) => {
@@ -119,7 +122,11 @@ export default function Home() {
         </AppBarSection>
         <AppBarSection className="appbar-spacer" />
         <AppBarSection>
-          {spotifyStatus.authenticated ? (
+          {spotifyStatusLoading ? (
+            <span className="spotify-status-loading" aria-busy="true">
+              <Skeleton shape="text" style={{ width: "8rem", height: "2rem" }} />
+            </span>
+          ) : spotifyStatus.authenticated ? (
             <span className="spotify-status">
               {spotifyStatus.avatarUrl && (
                 <img
@@ -129,6 +136,17 @@ export default function Home() {
                 />
               )}
               {spotifyStatus.displayName}
+              {spotifyStatus.isCompanyAccount && (
+                <Button
+                  type="button"
+                  fillMode="outline"
+                  size="small"
+                  onClick={() => { window.location.href = spotifyAuthUrl(); }}
+                  className="use-your-spotify-btn"
+                >
+                  Use your Spotify
+                </Button>
+              )}
             </span>
           ) : (
             <Button
@@ -191,6 +209,7 @@ export default function Home() {
 
             <PlaylistActions
               spotifyAuthed={spotifyStatus.authenticated}
+              isCompanyAccount={spotifyStatus.isCompanyAccount}
               playlistMode={playlistMode}
               onPlaylistModeChange={setPlaylistMode}
               playlistName={playlistName}

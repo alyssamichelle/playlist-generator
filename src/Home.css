@@ -111,6 +111,15 @@
   object-fit: contain;
 }
 
+.spotify-status-loading {
+  display: flex;
+  align-items: center;
+}
+
+.spotify-status-loading .k-skeleton {
+  border-radius: 6px;
+}
+
 .appbar-spacer {
   flex: 1;
 }
@@ -121,6 +130,11 @@
   gap: 0.5rem;
   font-size: 0.85rem;
   opacity: 0.75;
+}
+
+.use-your-spotify-btn {
+  margin-left: 0.5rem;
+  opacity: 1;
 }
 
 .spotify-avatar {

@@ -106,11 +106,12 @@ export default function PlaylistResults({
         <GridColumn field="title" title="Title" />
         <GridColumn field="artist" title="Artist" />
         <GridColumn field="album" title="Album" />
-        <GridColumn field="year" title="Year" />
+        <GridColumn field="year" title="Year" width="120px" />
         {showConfidence && (
           <GridColumn
             field="confidence"
             title="Match"
+            width="120px"
             cells={{ data: ConfidenceCell }}
             sortable
           />

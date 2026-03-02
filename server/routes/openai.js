@@ -3,7 +3,7 @@ import { openai } from "../config.js";
 
 const router = Router();
 
-const SYSTEM_PROMPT = `You are a music recommendation assistant. Given a user's prompt (mood, activity, genre, era, etc.), return a JSON object with either a "tracks" array or an "error" string. If you can find good matches, return: {"tracks": [...]}. Each track must have: title (string), artist (string), album (string), year (number, release year), confidence (number 0-100, how well this song fits the prompt), reason (string, one sentence explaining why this song fits the prompt). Only return an error for truly unusable prompts: offensive content, gibberish, or explicitly impossible requests. Otherwise always try to generate recommendations. Return ONLY valid JSON, no markdown or explanation. Example success: {"tracks":[{"title":"Song Name","artist":"Artist Name","album":"Album Name","year":2020,"confidence":92,"reason":"The driving rhythm and anthemic chorus perfectly match the high-energy workout vibe."}]}`;
+const SYSTEM_PROMPT = `You are a music recommendation assistant. Given a user's prompt (mood, activity, genre, era, etc.), return a JSON object with either a "tracks" array or an "error" string. If you can find good matches, return: {"tracks": [...]}. Return at least 10 tracks when possible; there is usually enough content to fill a playlist. Each track must have: title (string), artist (string), album (string), year (number, release year), confidence (number 0-100, how well this song fits the prompt), reason (string, one sentence explaining why this song fits the prompt). Only return an error for truly unusable prompts: offensive content, gibberish, or explicitly impossible requests. Otherwise always try to generate recommendations. Return ONLY valid JSON, no markdown or explanation. Example success: {"tracks":[{"title":"Song Name","artist":"Artist Name","album":"Album Name","year":2020,"confidence":92,"reason":"The driving rhythm and anthemic chorus perfectly match the high-energy workout vibe."}]}`;
 
 router.post("/", async (req, res) => {
   const { prompt } = req.body;
@@ -66,5 +66,42 @@ router.post("/", async (req, res) => {
     });
   }
 });
+
+/**
+ * Filter tracks for corporate appropriateness using OpenAI.
+ * @param {Array<{uri: string, title: string, artist: string, explicit?: boolean}>} tracks
+ * @returns {Promise<string[]>} URIs to keep
+ */
+export async function filterTracksForCorporate(tracks) {
+  if (!openai || !Array.isArray(tracks) || tracks.length === 0) {
+    return tracks.map((t) => t.uri).filter(Boolean);
+  }
+
+  const list = tracks.map((t) => ({
+    uri: t.uri,
+    title: t.title,
+    artist: t.artist,
+    explicit: t.explicit ?? false,
+  }));
+
+  const prompt = `Filter these tracks for corporate/family-friendly appropriateness. Exclude explicit content, suggestive lyrics, controversial themes, or anything that wouldn't be suitable for a shared workplace playlist. Return a JSON object with a "uris" array containing only the URIs to KEEP. If you are unsure about a track, exclude it. Return ONLY valid JSON, no markdown. Tracks:\n${JSON.stringify(list)}`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+    });
+
+    const text = completion.choices[0]?.message?.content?.trim() || "{}";
+    const raw = text.replace(/^```json\n?|\n?```$/g, "").trim();
+    const parsed = JSON.parse(raw);
+    const uris = parsed.uris ?? parsed;
+    return Array.isArray(uris) ? uris.filter((u) => typeof u === "string") : [];
+  } catch (e) {
+    console.error("Content filter error:", e);
+    return list.map((t) => t.uri).filter(Boolean);
+  }
+}
 
 export default router;

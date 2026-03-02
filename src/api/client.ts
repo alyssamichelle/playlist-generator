@@ -41,13 +41,13 @@ export interface SpotifyStatus {
   authenticated: boolean;
   displayName?: string;
   avatarUrl?: string | null;
+  isCompanyAccount?: boolean;
 }
 
 export async function getSpotifyStatus(): Promise<SpotifyStatus> {
   const token = getSpotifyToken();
-  if (!token) return { authenticated: false };
   const res = await fetch(`${API_BASE}/api/spotify/status`, {
-    headers: { "x-spotify-token": token },
+    headers: token ? { "x-spotify-token": token } : {},
   });
   return res.json();
 }
