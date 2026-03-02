@@ -1,0 +1,23 @@
+.track-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem 0;
+}
+
+.track-cell-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--kendo-color-on-surface, #212121);
+}
+
+.track-cell-meta {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--kendo-color-subtle, #666);
+}
+
+.track-cell-td {
+  vertical-align: top;
+}
