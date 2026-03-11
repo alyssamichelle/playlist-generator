@@ -65,12 +65,26 @@ export interface SpotifyPlaylist {
 }
 
 export async function getUserPlaylists(): Promise<SpotifyPlaylist[]> {
+  const token = getSpotifyToken();
+  if (!token) {
+    throw new Error("No Spotify token available");
+  }
+
   const res = await fetch(`${API_BASE}/api/spotify/playlists`, {
-    headers: spotifyHeaders(),
+    method: "GET",
+    headers: {
+      "x-spotify-token": token,
+      "Content-Type": "application/json",
+    },
   });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.playlists ?? [];
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to fetch playlists: ${res.status}`);
+  }
+
+  const data: SpotifyPlaylist[] = await res.json();
+  return data;
 }
 
 export async function generateTracks(prompt: string): Promise<Track[]> {

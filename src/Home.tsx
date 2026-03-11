@@ -1,4 +1,4 @@
-import { AppBar, AppBarSection } from "@progress/kendo-react-layout";
+import { AppBar, AppBarSection, GridLayout, GridLayoutItem } from "@progress/kendo-react-layout";
 import { Button } from "@progress/kendo-react-buttons";
 import { Switch } from "@progress/kendo-react-inputs";
 import { Loader, Skeleton } from "@progress/kendo-react-indicators";
@@ -16,6 +16,7 @@ import {
   spotifyAuthUrl,
   consumeSpotifyTokenFromUrl,
   getUserPlaylists,
+  getSpotifyToken
 } from "./api/client";
 import type { SpotifyStatus, SpotifyPlaylist } from "./api/client";
 import type { Track, SelectableTrack } from "./types";
@@ -47,20 +48,35 @@ export default function Home() {
   const [userPlaylists, setUserPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
 
-  useEffect(() => {
-    consumeSpotifyTokenFromUrl();
-    getSpotifyStatus()
-      .then((status) => {
-        setSpotifyStatus(status);
-        if (status.authenticated && !status.isCompanyAccount) {
-          return getUserPlaylists().then((playlists) => {
-            setUserPlaylists(playlists);
-            if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
-          });
-        }
-      })
-      .finally(() => setSpotifyStatusLoading(false));
-  }, []);
+useEffect(() => {
+  const init = async () => {
+    consumeSpotifyTokenFromUrl(); // store token from URL
+    const token = getSpotifyToken();
+
+    if (!token) {
+      window.location.href = spotifyAuthUrl();
+      return;
+    }
+
+    try {
+      const status = await getSpotifyStatus();
+      setSpotifyStatus(status);
+
+      if (status.authenticated && !status.isCompanyAccount) {
+        const playlists = await getUserPlaylists(); // now goes through backend
+        console.log("Playlists fetched:", playlists);
+        setUserPlaylists(playlists);
+        if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSpotifyStatusLoading(false);
+    }
+  };
+
+  init();
+}, []);
 
   const handleSearch = useCallback(async (prompt: string) => {
     setError(null);
@@ -169,6 +185,17 @@ export default function Home() {
             disabled={loading}
             submitLabel={loading ? "Generating…" : "Generate"}
           />
+
+          {!hasTracks && !loading &&
+            <div className="flex-layout">
+              <div>Test 1</div>
+              <div>Test 2</div>
+              <div>Test 3</div>
+             
+            </div>
+          }
+
+           {console.log('playlists', userPlaylists)}
 
           {hasTracks && (
             <label className="append-toggle">

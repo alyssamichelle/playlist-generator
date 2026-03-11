@@ -1,3 +1,13 @@
+
+.flex-layout {
+  display: flex;
+  width: 100%;
+}
+
+.flex-layout > div {
+  flex: 1;  
+}
+
 .section-container {
   max-width: 1200px;
   margin: 0 auto;
