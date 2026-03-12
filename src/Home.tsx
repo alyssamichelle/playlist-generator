@@ -64,7 +64,6 @@ useEffect(() => {
 
       if (status.authenticated && !status.isCompanyAccount) {
         const playlists = await getUserPlaylists(); // now goes through backend
-        console.log("Playlists fetched:", playlists);
         setUserPlaylists(playlists);
         if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
       }
@@ -186,16 +185,20 @@ useEffect(() => {
             submitLabel={loading ? "Generating…" : "Generate"}
           />
 
-          {!hasTracks && !loading &&
+          {!hasTracks && !loading && userPlaylists.playlists &&
+            <>            
+            <h3>Recently Generated Playlists</h3>
             <div className="flex-layout">
-              <div>Test 1</div>
-              <div>Test 2</div>
-              <div>Test 3</div>
-             
+              { userPlaylists.playlists.slice(0, 3).map((playlist) => 
+                <>
+                  <PlaylistEmbed embedUrl={`http://open.spotify.com/embed/playlist/` + playlist.id}/> 
+                </>
+              )}
+              {console.log(userPlaylists.playlists)}
             </div>
-          }
+            </>
 
-           {console.log('playlists', userPlaylists)}
+          }
 
           {hasTracks && (
             <label className="append-toggle">
