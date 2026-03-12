@@ -190,9 +190,9 @@ useEffect(() => {
             <h3>Recently Generated Playlists</h3>
             <div className="flex-layout">
               { userPlaylists.playlists.slice(0, 3).map((playlist) => 
-                <>
+                <div>
                   <PlaylistEmbed embedUrl={`http://open.spotify.com/embed/playlist/` + playlist.id}/> 
-                </>
+                </div>
               )}
               {console.log(userPlaylists.playlists)}
             </div>

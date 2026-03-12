@@ -2,10 +2,13 @@
 .flex-layout {
   display: flex;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .flex-layout > div {
   flex: 1;  
+  min-width: 300px;
+  width: 100%;
 }
 
 .section-container {
