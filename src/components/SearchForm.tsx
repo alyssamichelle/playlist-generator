@@ -22,7 +22,7 @@ export interface SearchFormProps {
 export default function SearchForm({
   onSubmit,
   disabled = false,
-  placeholder = "Describe the vibe, mood, or songs you want…",
+  placeholder = 'Prompt with a genre, artist, or vibe: "Lo-fi for studing", "Best of Queen", "Road trip mix',
   submitLabel = "Generate",
 }: SearchFormProps) {
   const [value, setValue] = useState("");
@@ -58,7 +58,7 @@ export default function SearchForm({
         className="search-input"
       />
       <span id="search-hint" className="visually-hidden">
-        Type a mood, genre, or activity and press Generate.
+        Prompt with a genre, artist, or vibe: "Lo-fi for studing", "Best of Queen", "Road trip mix"
       </span>
       <Button
         type="submit"
