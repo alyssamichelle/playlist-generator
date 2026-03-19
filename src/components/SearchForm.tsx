@@ -2,7 +2,7 @@
 
 import { Button } from "@progress/kendo-react-buttons";
 import { Input } from "@progress/kendo-react-inputs";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 // Example prompts shown in the input placeholder; one is picked at random on mount
 const PROMPT_OPTIONS = [
@@ -38,11 +38,24 @@ export default function SearchForm({
 }: SearchFormProps) {
   // Controlled input value; empty string until user types
   const [value, setValue] = useState("");
+  const [placeholder, setPlaceholder] = useState('');
+  const [randomPlaceholder, setRandomPlaceholder] = useState(() => getRandomPlaceholder());
 
-  // Pick one random placeholder on start up
-  const [randomPlaceholder] = useState(
-    () => PROMPT_OPTIONS[Math.floor(Math.random() * PROMPT_OPTIONS.length)]
-  );
+  useEffect(() => {
+    if (value.trim()) return;
+    const id = setInterval(() => {
+      setRandomPlaceholder(getRandomPlaceholder());
+    }, 6000);
+    return () => clearInterval(id);
+  }, [value]);
+
+  useEffect(() => {
+    setPlaceholder(randomPlaceholder);
+  }, [randomPlaceholder]);
+
+  function getRandomPlaceholder() {
+    return PROMPT_OPTIONS[Math.floor(Math.random() * PROMPT_OPTIONS.length)];
+  }
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,7 +83,7 @@ export default function SearchForm({
         id="playlist-prompt"
         value={value}
         onChange={(e) => setValue(e.value ?? "")}
-        placeholder={randomPlaceholder}
+        placeholder={placeholder}
         disabled={disabled}
         autoComplete="off"
         aria-describedby="search-hint"
