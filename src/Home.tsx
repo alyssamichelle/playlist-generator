@@ -51,21 +51,19 @@ export default function Home() {
 useEffect(() => {
   const init = async () => {
     consumeSpotifyTokenFromUrl(); // store token from URL
-    const token = getSpotifyToken();
-
-    if (!token) {
-      window.location.href = spotifyAuthUrl();
-      return;
-    }
 
     try {
+      // Always check status — backend returns company auth when configured, even without user token
       const status = await getSpotifyStatus();
       setSpotifyStatus(status);
 
       if (status.authenticated && !status.isCompanyAccount) {
-        const playlists = await getUserPlaylists(); // now goes through backend
-        setUserPlaylists(playlists);
-        if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
+        const token = getSpotifyToken();
+        if (token) {
+          const playlists = await getUserPlaylists();
+          setUserPlaylists(playlists);
+          if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
+        }
       }
     } catch (err) {
       console.error(err);

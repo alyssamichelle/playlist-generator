@@ -3,7 +3,7 @@ import "dotenv/config";
 /**
  * Backend API for playlist generation.
  * Routes:
- *   /api/generate       — POST: generate song suggestions via OpenAI
+ *   /api/openai         — POST: generate song suggestions via OpenAI
  *   /api/spotify/*      — Spotify OAuth, user profile, playlists, playlist creation
  */
 
@@ -34,7 +34,7 @@ app.use(
 
 app.use(express.json());
 
-app.use("/api/generate", generateRouter);
+app.use("/api/openai", generateRouter);
 app.use("/api/spotify", spotifyRouter);
 
 app.listen(PORT, () => {

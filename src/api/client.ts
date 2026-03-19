@@ -88,7 +88,7 @@ export async function getUserPlaylists(): Promise<SpotifyPlaylist[]> {
 }
 
 export async function generateTracks(prompt: string): Promise<Track[]> {
-  const res = await fetch(`${API_BASE}/api/generate`, {
+  const res = await fetch(`${API_BASE}/api/openai`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...spotifyHeaders() },
     body: JSON.stringify({ prompt: prompt.trim() }),
