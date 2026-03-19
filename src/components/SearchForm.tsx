@@ -4,13 +4,25 @@ import { Button } from "@progress/kendo-react-buttons";
 import { Input } from "@progress/kendo-react-inputs";
 import { useCallback, useState } from "react";
 
+// Example prompts shown in the input placeholder; one is picked at random on mount
+const PROMPT_OPTIONS = [
+  "Chill indie songs for a rainy Sunday morning",
+  "High-energy gym playlist with no sad songs",
+  "Country road trip vibes, upbeat and nostalgic",
+  "Lo-fi focus music with no vocals, 1 hour long",
+  "Songs like Zach Bryan but a little more upbeat",
+  "Feel-good pop hits from the 2010s",
+  "Late night drive, moody and atmospheric",
+  "Clean country playlist for a family cookout",
+  "Emotional but empowering breakup playlist",
+  "Coffee shop acoustic vibes, soft and cozy",
+];
+
 export interface SearchFormProps {
   /** Called when user submits. Receives the prompt. */
   onSubmit: (prompt: string) => void;
   /** Whether a request is in progress. */
   disabled?: boolean;
-  /** Placeholder for the input. */
-  placeholder?: string;
   /** Label for the submit button. */
   submitLabel?: string;
 }
@@ -22,14 +34,21 @@ export interface SearchFormProps {
 export default function SearchForm({
   onSubmit,
   disabled = false,
-  placeholder = 'Prompt with a genre, artist, or vibe: "Lo-fi for studing", "Best of Queen", "Road trip mix',
   submitLabel = "Generate",
 }: SearchFormProps) {
+  // Controlled input value; empty string until user types
   const [value, setValue] = useState("");
+
+  // Pick one random placeholder on start up
+  const [randomPlaceholder] = useState(
+    () => PROMPT_OPTIONS[Math.floor(Math.random() * PROMPT_OPTIONS.length)]
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
+      // Prevent default form submission (page reload)
       e.preventDefault();
+      // Only submit if there's non-whitespace content and we're not disabled
       if (value.trim() && !disabled) {
         onSubmit(value.trim());
       }
@@ -51,12 +70,13 @@ export default function SearchForm({
         id="playlist-prompt"
         value={value}
         onChange={(e) => setValue(e.value ?? "")}
-        placeholder={placeholder}
+        placeholder={randomPlaceholder}
         disabled={disabled}
         autoComplete="off"
         aria-describedby="search-hint"
         className="search-input"
       />
+      {/* Screen reader hint; keep generic since placeholder text rotates */}
       <span id="search-hint" className="visually-hidden">
         Prompt with a genre, artist, or vibe: "Lo-fi for studing", "Best of Queen", "Road trip mix"
       </span>
