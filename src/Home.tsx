@@ -1,4 +1,4 @@
-import { AppBar, AppBarSection, GridLayout, GridLayoutItem } from "@progress/kendo-react-layout";
+import { AppBar, AppBarSection } from "@progress/kendo-react-layout";
 import { Button } from "@progress/kendo-react-buttons";
 import { Switch } from "@progress/kendo-react-inputs";
 import { Loader, Skeleton } from "@progress/kendo-react-indicators";

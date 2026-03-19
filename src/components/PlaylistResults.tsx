@@ -30,7 +30,7 @@ export default function PlaylistResults({
     onSelectionChange(updated);
   };
 
-  const handleHeaderSelectionChange = (event: GridHeaderSelectionChangeEvent) => {
+  const handleHeaderSelectionChange = (_event: GridHeaderSelectionChangeEvent) => {
     const allSelected = tracks.every((t) => t.selected);
     const newSelected = !allSelected;
     const updated = tracks.map((track) => ({ ...track, selected: newSelected }));

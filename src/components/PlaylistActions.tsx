@@ -22,7 +22,7 @@ interface PlaylistActionsProps {
 
 export default function PlaylistActions({
   spotifyAuthed,
-  isCompanyAccount = false,
+  isCompanyAccount: _isCompanyAccount = false,
   playlistMode,
   onPlaylistModeChange,
   playlistName,
