@@ -2,7 +2,7 @@
 
 import { Button } from "@progress/kendo-react-buttons";
 import { Input } from "@progress/kendo-react-inputs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // Example prompts shown in the input placeholder; one is picked at random on mount
 const PROMPT_OPTIONS = [
@@ -38,11 +38,13 @@ export default function SearchForm({
 }: SearchFormProps) {
   // Controlled input value; empty string until user types
   const [value, setValue] = useState("");
-  const [placeholder, setPlaceholder] = useState('');
   const [randomPlaceholder, setRandomPlaceholder] = useState(() => getRandomPlaceholder());
-
+  const steps = useMemo(() => getTypingSteps(randomPlaceholder), [randomPlaceholder]);
+  const [stepIndex, setStepIndex] = useState(0);
+  
   useEffect(() => {
     if (value.trim()) return;
+    setRandomPlaceholder(getRandomPlaceholder());
     const id = setInterval(() => {
       setRandomPlaceholder(getRandomPlaceholder());
     }, 6000);
@@ -50,13 +52,27 @@ export default function SearchForm({
   }, [value]);
 
   useEffect(() => {
-    setPlaceholder(randomPlaceholder);
+    if (stepIndex >= steps.length) return;
+    const id = setInterval(() => setStepIndex((i) => i + 1), 50);
+    return () => clearInterval(id);
+  }, [randomPlaceholder, stepIndex, steps.length]);
+
+  useEffect(() => {
+    setStepIndex(0); // reset when target changes
   }, [randomPlaceholder]);
 
   function getRandomPlaceholder() {
     return PROMPT_OPTIONS[Math.floor(Math.random() * PROMPT_OPTIONS.length)];
   }
 
+  function getTypingSteps(target: string): string[] {
+    return target.split("").reduce<string[]>(
+      (accumulator, character) => [...accumulator, (accumulator.at(-1) ?? "") + character],
+      [""]
+    );
+  }
+
+  const placeholder = steps[Math.min(stepIndex, steps.length - 1)] ?? "";
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       // Prevent default form submission (page reload)
