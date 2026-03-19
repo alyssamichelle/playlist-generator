@@ -52,9 +52,9 @@ router.get("/status", async (req, res) => {
   return res.json({ authenticated: false });
 });
 
-/** Get the current user's playlists */
+/** Get the current user's playlists (uses user token or company token fallback) */
 router.get("/playlists", async (req, res) => {
-  const token = req.headers["x-spotify-token"];
+  const { token } = (await getToken(req)) ?? {};
   if (!token) return res.status(401).json({ error: "Not authenticated" });
 
   try {
@@ -66,7 +66,7 @@ router.get("/playlists", async (req, res) => {
     const playlists = (data.items ?? []).map((p) => ({
       id: p.id,
       name: p.name,
-      trackCount: p.items?.total ?? 0,
+      trackCount: p.tracks?.total ?? 0,
       imageUrl: p.images?.[0]?.url ?? null,
     }));
     return res.json({ playlists });

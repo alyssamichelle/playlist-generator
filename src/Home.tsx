@@ -16,7 +16,6 @@ import {
   spotifyAuthUrl,
   consumeSpotifyTokenFromUrl,
   getUserPlaylists,
-  getSpotifyToken
 } from "./api/client";
 import type { SpotifyStatus, SpotifyPlaylist } from "./api/client";
 import type { Track, SelectableTrack } from "./types";
@@ -57,12 +56,13 @@ useEffect(() => {
       const status = await getSpotifyStatus();
       setSpotifyStatus(status);
 
-      if (status.authenticated && !status.isCompanyAccount) {
-        const token = getSpotifyToken();
-        if (token) {
+      if (status.authenticated) {
+        try {
           const playlists = await getUserPlaylists();
           setUserPlaylists(playlists);
           if (playlists.length > 0) setSelectedPlaylist(playlists[0]);
+        } catch (err) {
+          console.error("Failed to fetch playlists:", err);
         }
       }
     } catch (err) {
@@ -183,20 +183,18 @@ useEffect(() => {
             submitLabel={loading ? "Generating…" : "Generate"}
           />
 
-          {!hasTracks && !loading && userPlaylists.playlists &&
-            <>            
-            <h3>Recently Generated Playlists</h3>
-            <div className="flex-layout">
-              { userPlaylists.playlists.slice(0, 3).map((playlist) => 
-                <div>
-                  <PlaylistEmbed embedUrl={`http://open.spotify.com/embed/playlist/` + playlist.id}/> 
-                </div>
-              )}
-              {console.log(userPlaylists.playlists)}
-            </div>
+          {!hasTracks && !loading && spotifyStatus.authenticated && userPlaylists.length > 0 && (
+            <>
+              <h3>Recently Generated Playlists</h3>
+              <div className="flex-layout">
+                {userPlaylists.slice(0, 3).map((playlist) => (
+                  <div key={playlist.id}>
+                    <PlaylistEmbed embedUrl={`https://open.spotify.com/embed/playlist/${playlist.id}`} />
+                  </div>
+                ))}
+              </div>
             </>
-
-          }
+          )}
 
           {hasTracks && (
             <label className="append-toggle">

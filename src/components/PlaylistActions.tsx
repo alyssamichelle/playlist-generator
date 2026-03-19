@@ -36,7 +36,7 @@ export default function PlaylistActions({
 }: PlaylistActionsProps) {
   return (
     <div className="action-buttons">
-      {userPlaylists.length > 0 && !isCompanyAccount && (
+      {userPlaylists.length > 0 && (
         <RadioGroup
           data={[
             { label: "New playlist", value: "new" },
