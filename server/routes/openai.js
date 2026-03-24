@@ -3,7 +3,7 @@ import { openai } from "../config.js";
 
 const router = Router();
 
-const SYSTEM_PROMPT = `You are a music recommendation assistant. Given a user's prompt (mood, activity, genre, era, etc.), return a JSON object with either a "tracks" array or an "error" string. If you can find good matches, return: {"tracks": [...]}. Return at least 10 tracks when possible; there is usually enough content to fill a playlist. Each track must have: title (string), artist (string), album (string), year (number, release year), confidence (number 0-100, how well this song fits the prompt), reason (string, one sentence explaining why this song fits the prompt). Only return an error for truly unusable prompts: offensive content, gibberish, or explicitly impossible requests. Otherwise always try to generate recommendations. Return ONLY valid JSON, no markdown or explanation. Example success: {"tracks":[{"title":"Song Name","artist":"Artist Name","album":"Album Name","year":2020,"confidence":92,"reason":"The driving rhythm and anthemic chorus perfectly match the high-energy workout vibe."}]}`;
+const SYSTEM_PROMPT = `You are a music recommendation assistant. Given a user's prompt (mood, activity, genre, era, etc.), return a JSON object with either a "tracks" array or an "error" string. If you can find good matches, return: {"playlistTitle": string, "tracks": [...]}. playlistTitle must be a concise playlist name (about 3–7 words) that summarizes the user's request—suitable for Spotify; no surrounding quotes; prefer Title Case when natural; keep it under 80 characters. Return at least 10 tracks when possible; there is usually enough content to fill a playlist. Each track must have: title (string), artist (string), album (string), year (number, release year), confidence (number 0-100, how well this song fits the prompt), reason (string, one sentence explaining why this song fits the prompt). Only return an error for truly unusable prompts: offensive content, gibberish, or explicitly impossible requests. Otherwise always try to generate recommendations. Return ONLY valid JSON, no markdown or explanation. Example success: {"playlistTitle":"High-Energy Workout Anthems","tracks":[{"title":"Song Name","artist":"Artist Name","album":"Album Name","year":2020,"confidence":92,"reason":"The driving rhythm and anthemic chorus perfectly match the high-energy workout vibe."}]}`;
 
 const BASELINE_TEMPERATURE = 0.7;
 const MIN_TEMPERATURE = 0.2;
@@ -52,6 +52,15 @@ const HARD_CONSTRAINT_PATTERNS = [
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+const MAX_PLAYLIST_TITLE_LEN = 100;
+
+function sanitizePlaylistTitle(value) {
+  if (typeof value !== "string") return undefined;
+  const t = value.trim().replace(/\s+/g, " ");
+  if (!t) return undefined;
+  return t.length > MAX_PLAYLIST_TITLE_LEN ? t.slice(0, MAX_PLAYLIST_TITLE_LEN) : t;
 }
 
 function escapeRegExp(input) {
@@ -186,7 +195,9 @@ router.post("/", async (req, res) => {
         reason: t.reason ? String(t.reason) : undefined,
       }));
 
-    return res.json({ tracks: normalized });
+    const playlistTitle = sanitizePlaylistTitle(parsed.playlistTitle);
+
+    return res.json({ tracks: normalized, ...(playlistTitle ? { playlistTitle } : {}) });
   } catch (err) {
     console.error("OpenAI error:", err);
     return res.status(502).json({

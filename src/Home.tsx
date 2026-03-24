@@ -25,6 +25,14 @@ function toSelectableTrack(t: Track): SelectableTrack {
   return { ...t, selected: true };
 }
 
+/** Fallback when the API does not return playlistTitle (older models / parse quirks). */
+function titleFromPrompt(prompt: string): string {
+  const cleaned = prompt.trim().replace(/\s+/g, " ");
+  if (!cleaned) return "";
+  const max = 72;
+  return cleaned.length <= max ? cleaned : `${cleaned.slice(0, max - 1)}…`;
+}
+
 const ErrorMessage = ({ message }: { message: string | null }) => {
   if (!message) return null;
   return (
@@ -81,10 +89,15 @@ useEffect(() => {
     setEmbedUrl(null);
     setLoading(true);
     try {
-      const generated = await generateTracks(prompt);
+      const { tracks: generated, playlistTitle } = await generateTracks(prompt);
       const newTracks = await resolveTracksWithSpotify(generated);
       const selectable = newTracks.map(toSelectableTrack);
-      setTracks((prev) => appendMode ? [...prev, ...selectable] : selectable);
+      setTracks((prev) => (appendMode ? [...prev, ...selectable] : selectable));
+      const suggestedName = playlistTitle?.trim() || titleFromPrompt(prompt);
+      setPlaylistName((prev) => {
+        if (!appendMode) return suggestedName;
+        return prev.trim() ? prev : suggestedName;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to generate songs");
     } finally {

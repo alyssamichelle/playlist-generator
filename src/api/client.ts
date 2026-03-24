@@ -82,15 +82,27 @@ export async function getUserPlaylists(): Promise<SpotifyPlaylist[]> {
   return data.playlists ?? [];
 }
 
-export async function generateTracks(prompt: string): Promise<Track[]> {
+export async function generateTracks(prompt: string): Promise<{
+  tracks: Track[];
+  playlistTitle?: string;
+}> {
   const res = await fetch(`${API_BASE}/api/openai`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...spotifyHeaders() },
     body: JSON.stringify({ prompt: prompt.trim() }),
   });
-  const data = await res.json();
+  const data = (await res.json()) as {
+    tracks?: Track[];
+    playlistTitle?: string;
+    error?: string;
+  };
   if (!res.ok) throw new Error(data.error || "Failed to generate songs");
-  return data.tracks;
+  return {
+    tracks: data.tracks as Track[],
+    ...(typeof data.playlistTitle === "string" && data.playlistTitle.trim()
+      ? { playlistTitle: data.playlistTitle.trim() }
+      : {}),
+  };
 }
 
 /** Resolve generated tracks to canonical Spotify metadata before showing the grid. */
