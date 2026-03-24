@@ -19,6 +19,48 @@ async function getToken(req) {
   return null;
 }
 
+/**
+ * Search Spotify for a single track by title + artist (top hit).
+ * @param {string} token Access token
+ * @param {string} title
+ * @param {string} artist
+ * @returns {Promise<{ uri: string, id: string, name: string, artist: string, album: string, year?: number, explicit: boolean } | null>}
+ * @throws {Error} With message SPOTIFY_SEARCH_PARSE if the response is not valid JSON
+ */
+async function searchSpotifyTrack(token, title, artist) {
+  const query = encodeURIComponent(`${title} ${artist}`);
+  const searchRes = await fetch(
+    `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  const searchText = await searchRes.text();
+  let data;
+  try {
+    data = JSON.parse(searchText);
+  } catch {
+    throw new Error("SPOTIFY_SEARCH_PARSE");
+  }
+  const item = data.tracks?.items?.[0];
+  if (!item?.uri) return null;
+
+  const album = item.album;
+  let year;
+  if (album?.release_date) {
+    const y = parseInt(String(album.release_date).slice(0, 4), 10);
+    if (!Number.isNaN(y)) year = y;
+  }
+
+  return {
+    uri: item.uri,
+    id: item.id,
+    name: item.name,
+    artist: item.artists?.[0]?.name ?? artist,
+    album: album?.name ?? "",
+    year,
+    explicit: item.explicit ?? false,
+  };
+}
+
 /** Check Spotify auth status and return basic profile info */
 router.get("/status", async (req, res) => {
   const userToken = req.headers["x-spotify-token"];
@@ -141,6 +183,77 @@ router.get("/callback", async (req, res) => {
   res.redirect(`${FRONTEND_URL}/?spotify_error=auth_failed`);
 });
 
+/** Resolve AI suggestions to canonical Spotify tracks (search per row). */
+router.post("/resolve-tracks", async (req, res) => {
+  const { tracks: bodyTracks } = req.body;
+  const auth = await getToken(req);
+
+  if (!auth) {
+    return res.status(401).json({
+      error: "Not authenticated with Spotify",
+      needsAuth: true,
+    });
+  }
+
+  const { token } = auth;
+
+  if (!Array.isArray(bodyTracks) || bodyTracks.length === 0) {
+    return res.status(400).json({ error: "Tracks array is required" });
+  }
+
+  try {
+    const resolved = [];
+    for (const t of bodyTracks) {
+      if (!t?.title || !t?.artist) continue;
+
+      let hit;
+      try {
+        hit = await searchSpotifyTrack(
+          token,
+          String(t.title),
+          String(t.artist),
+        );
+      } catch (e) {
+        if (e instanceof Error && e.message === "SPOTIFY_SEARCH_PARSE") {
+          return res
+            .status(502)
+            .json({ error: "Spotify search returned unexpected response" });
+        }
+        throw e;
+      }
+
+      if (!hit) continue;
+
+      resolved.push({
+        id: hit.id,
+        title: hit.name,
+        artist: hit.artist,
+        album: hit.album,
+        ...(hit.year !== undefined ? { year: hit.year } : {}),
+        confidence:
+          typeof t.confidence === "number"
+            ? Math.min(100, Math.max(0, t.confidence))
+            : undefined,
+        reason: t.reason ? String(t.reason) : undefined,
+        spotifyUri: hit.uri,
+        explicit: hit.explicit,
+      });
+    }
+
+    if (resolved.length === 0) {
+      return res.status(422).json({
+        error:
+          "No matching songs found on Spotify. Try a different prompt or sign in and try again.",
+      });
+    }
+
+    return res.json({ tracks: resolved });
+  } catch (err) {
+    console.error("Spotify resolve-tracks error:", err);
+    return res.status(502).json({ error: "Spotify request failed" });
+  }
+});
+
 /** Create or update a Spotify playlist from a list of tracks */
 router.post("/playlist", async (req, res) => {
   const { tracks, name, existingPlaylistId } = req.body;
@@ -160,30 +273,36 @@ router.post("/playlist", async (req, res) => {
   }
 
   try {
-    // Search Spotify for each track to get its URI and explicit flag
+    // Search Spotify for each track to get its URI and explicit flag (skip if already resolved)
     const found = [];
     for (const t of tracks) {
-      const query = encodeURIComponent(`${t.title} ${t.artist}`);
-      const searchRes = await fetch(
-        `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      const searchText = await searchRes.text();
-      let data;
-      try {
-        data = JSON.parse(searchText);
-      } catch {
-        return res
-          .status(502)
-          .json({ error: "Spotify search returned unexpected response" });
-      }
-      const item = data.tracks?.items?.[0];
-      if (item?.uri) {
+      if (t.spotifyUri && t.title && t.artist) {
         found.push({
-          uri: item.uri,
-          title: item.name,
-          artist: item.artists?.[0]?.name ?? t.artist,
-          explicit: item.explicit ?? false,
+          uri: t.spotifyUri,
+          title: t.title,
+          artist: t.artist,
+          explicit: t.explicit ?? false,
+        });
+        continue;
+      }
+
+      let hit;
+      try {
+        hit = await searchSpotifyTrack(token, String(t.title), String(t.artist));
+      } catch (e) {
+        if (e instanceof Error && e.message === "SPOTIFY_SEARCH_PARSE") {
+          return res
+            .status(502)
+            .json({ error: "Spotify search returned unexpected response" });
+        }
+        throw e;
+      }
+      if (hit) {
+        found.push({
+          uri: hit.uri,
+          title: hit.name,
+          artist: hit.artist,
+          explicit: hit.explicit,
         });
       }
     }

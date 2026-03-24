@@ -11,6 +11,7 @@ import PlaylistEmbed from "./components/PlaylistEmbed";
 import PlaylistActions from "./components/PlaylistActions";
 import {
   generateTracks,
+  resolveTracksWithSpotify,
   createPlaylist,
   getSpotifyStatus,
   spotifyAuthUrl,
@@ -80,7 +81,8 @@ useEffect(() => {
     setEmbedUrl(null);
     setLoading(true);
     try {
-      const newTracks = await generateTracks(prompt);
+      const generated = await generateTracks(prompt);
+      const newTracks = await resolveTracksWithSpotify(generated);
       const selectable = newTracks.map(toSelectableTrack);
       setTracks((prev) => appendMode ? [...prev, ...selectable] : selectable);
     } catch (e) {

@@ -93,6 +93,28 @@ export async function generateTracks(prompt: string): Promise<Track[]> {
   return data.tracks;
 }
 
+/** Resolve generated tracks to canonical Spotify metadata before showing the grid. */
+export async function resolveTracksWithSpotify(tracks: Track[]): Promise<Track[]> {
+  const res = await fetch(`${API_BASE}/api/spotify/resolve-tracks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...spotifyHeaders() },
+    body: JSON.stringify({ tracks }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    tracks?: Track[];
+    error?: string;
+    needsAuth?: boolean;
+  };
+  if (!res.ok) {
+    if (data.needsAuth) {
+      window.location.href = spotifyAuthUrl();
+      throw new Error("Redirecting to Spotify login…");
+    }
+    throw new Error(data.error || "Failed to resolve songs on Spotify");
+  }
+  return data.tracks as Track[];
+}
+
 export async function createPlaylist(tracks: Track[], name?: string, existingPlaylistId?: string): Promise<{
   playlistId: string;
   embedUrl: string;

@@ -14,6 +14,8 @@ export interface Track {
   reason?: string;
   /** Spotify URI, populated when we resolve the track for playlist creation */
   spotifyUri?: string;
+  /** From Spotify when resolved; used for corporate playlist filtering */
+  explicit?: boolean;
 }
 
 /** Track with selection state for the grid. */
