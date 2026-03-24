@@ -6,11 +6,11 @@
 App loads
     │
     ▼
-getSpotifyStatus()  →  GET /api/spotify/status
+getSpotifyStatus() [`src/api/client.ts:47`]  →  GET /api/spotify/status [`server/routes/spotify.js:23`]
     • Headers: x-spotify-token (optional — omit when no user token)
     • Returns: { authenticated, displayName?, avatarUrl?, isCompanyAccount? }
     •
-    • When no user token: backend checks company tokens; returns authenticated: true
+    • When no user token: backend checks company token; returns authenticated: true
     •   with isCompanyAccount: true if SPOTIFY_COMPANY_* env vars are set.
     • User is never redirected to Spotify on load; sign-in is optional.
 ```
@@ -18,13 +18,13 @@ getSpotifyStatus()  →  GET /api/spotify/status
 ## Full Flow: From User Prompt to Playlist
 
 ```
-User submits prompt (e.g., "upbeat workout music")
+User submits prompt (e.g., "upbeat workout music") [`src/Home.tsx:181, 78`]
                     │
                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 3: Generate Track List                                                 │
 │                                                                              │
-│ generateTracks(prompt)  →  POST /api/openai                                  │
+│ generateTracks(prompt) [`src/Home.tsx:83`, `src/api/client.ts:85`]  →  POST /api/openai [`server/routes/openai.js:8`] │
 │   • Body: { prompt: string }                                                 │
 │   • Headers: x-spotify-token (optional)                                      │
 │                                                                              │
@@ -43,8 +43,8 @@ User submits prompt (e.g., "upbeat workout music")
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 4: Create Playlist in Spotify                                          │
 │                                                                              │
-│ createPlaylist(tracks, name?, existingPlaylistId?)                           │
-│   →  POST /api/spotify/playlist                                              │
+│ createPlaylist(tracks, name?, existingPlaylistId?) [`src/api/client.ts:96`] │
+│   →  POST /api/spotify/playlist [`server/routes/spotify.js:145`]             │
 │   • Body: { tracks, name?, existingPlaylistId? }                             │
 │   • Headers: x-spotify-token (optional — backend uses company token if absent)│
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -60,9 +60,9 @@ User submits prompt (e.g., "upbeat workout music")
 │ Spotify │         │         │ If company: │      │ Create or    │  │ Add tracks  │
 │ search  │─────────┘         │ OpenAI      │─────►│ use existing │─►│ in batches  │
 │ for URI │  (for each track) │ filters     │      │ POST         │  │ of 100      │
-│         │                   │ explicit    │      │ /v1/me/      │  │ POST        │
-└─────────┘                   │ content     │      │ playlists    │  │ /v1/playlists│
-                              └─────────────┘      └──────────────┘  │ /{id}/tracks│
+│ [`server/routes/spotify.js:165`] │ │ explicit    │  │ /v1/me/ [`server/routes/spotify.js:199`] │ │ POST        │
+└─────────┘                   │ [`server/routes/spotify.js:192`, `server/routes/openai.js:75`] │ │ playlists    │  │ /v1/playlists│
+                              └─────────────┘      └──────────────┘  │ /{id}/items [`server/routes/spotify.js:225`]│
                                                                      └─────────────┘
                                                                               │
                                                                               ▼
