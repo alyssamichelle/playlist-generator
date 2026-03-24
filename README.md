@@ -33,3 +33,20 @@ Generate Spotify playlists from natural language using ChatGPT.
 3. Uncheck any songs you want to exclude
 4. Optionally run a **New search** to add more songs
 5. Click **Create Spotify playlist** — you’ll be prompted to log in with Spotify, then your playlist is created and embedded
+
+## Main files (where to look)
+
+| File | Purpose |
+|------|---------|
+| [src/api/client.ts](src/api/client.ts) | Browser-side API client: **OpenAI** is only exposed as `POST /api/openai` (track generation). **Spotify** uses several paths under `/api/spotify/` (status, playlists, auth URL, resolve-tracks, create playlist). Sends `x-spotify-token` when the user is signed in; builds Spotify login redirect URLs. |
+| [src/Home.tsx](src/Home.tsx) | Main screen: loads Spotify status and playlists, runs **Generate** (OpenAI → resolve on Spotify → grid), **Create playlist**, and wires child components. |
+| [src/types/index.ts](src/types/index.ts) | TypeScript types for a track row (`Track`, `SelectableTrack`) shared by the grid and API responses. |
+| [src/components/SearchForm.tsx](src/components/SearchForm.tsx) | Prompt input and submit for generation / search. |
+| [src/components/PlaylistResults.tsx](src/components/PlaylistResults.tsx) | Kendo Grid of suggested tracks with checkboxes and optional confidence/reason columns. |
+| [src/components/PlaylistActions.tsx](src/components/PlaylistActions.tsx) | Playlist mode (new vs existing), name, playlist picker, and **Create** button. |
+| [src/components/PlaylistEmbed.tsx](src/components/PlaylistEmbed.tsx) | Spotify iframe embed after a playlist is created. |
+| [server/index.js](server/index.js) | Express app entry: CORS, JSON body, mounts `/api/openai` and `/api/spotify`. |
+| [server/config.js](server/config.js) | Environment variables, shared OpenAI client, company Spotify token refresh (`getCompanyToken`). |
+| [server/routes/openai.js](server/routes/openai.js) | **POST /** — ChatGPT track suggestions with adaptive temperature from the prompt; exports `filterTracksForCorporate` for company playlists. |
+| [server/routes/spotify.js](server/routes/spotify.js) | Spotify OAuth (auth + callback), status, user playlists, **resolve-tracks** (search each suggestion before the grid), **playlist** (create/add tracks). Includes `searchSpotifyTrack` helper. |
+| [API_MAP.md](API_MAP.md) | Request/response flow and line-level map of API usage (OpenAI + Spotify). |
