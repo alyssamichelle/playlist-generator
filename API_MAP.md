@@ -30,6 +30,7 @@ User submits prompt (e.g., "upbeat workout music") [`src/Home.tsx:181, 78`]
 │                                                                              │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
 │   │ OpenAI (GPT-4o-mini): Generates song suggestions from user prompt   │   │
+│   │ Uses adaptive temperature from prompt cues (precision vs discovery) │   │
 │   │ Returns: title, artist, album, year, confidence, reason per track   │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
@@ -73,5 +74,5 @@ User submits prompt (e.g., "upbeat workout music") [`src/Home.tsx:181, 78`]
 
 | Phase | When | Purpose |
 |-------|------|---------|
-| **Phase 3** | User clicks "Generate" | **Primary:** Generate track suggestions from the user's text prompt (mood, genre, activity, etc.) |
+| **Phase 3** | User clicks "Generate" | **Primary:** Generate track suggestions from the user's text prompt (mood, genre, activity, etc.) with adaptive temperature tuning based on precision/exploration cues |
 | **Phase 4** | User clicks "Create Playlist" (company accounts only) | **Secondary:** Filter explicit content before adding tracks to the playlist |

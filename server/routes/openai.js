@@ -5,6 +5,119 @@ const router = Router();
 
 const SYSTEM_PROMPT = `You are a music recommendation assistant. Given a user's prompt (mood, activity, genre, era, etc.), return a JSON object with either a "tracks" array or an "error" string. If you can find good matches, return: {"tracks": [...]}. Return at least 10 tracks when possible; there is usually enough content to fill a playlist. Each track must have: title (string), artist (string), album (string), year (number, release year), confidence (number 0-100, how well this song fits the prompt), reason (string, one sentence explaining why this song fits the prompt). Only return an error for truly unusable prompts: offensive content, gibberish, or explicitly impossible requests. Otherwise always try to generate recommendations. Return ONLY valid JSON, no markdown or explanation. Example success: {"tracks":[{"title":"Song Name","artist":"Artist Name","album":"Album Name","year":2020,"confidence":92,"reason":"The driving rhythm and anthemic chorus perfectly match the high-energy workout vibe."}]}`;
 
+const BASELINE_TEMPERATURE = 0.7;
+const MIN_TEMPERATURE = 0.2;
+const MAX_TEMPERATURE = 1.0;
+const HARD_PRECISION_TEMPERATURE_CAP = 0.75;
+
+const PRECISION_CUES = [
+  { phrase: "exact", weight: -0.1 },
+  { phrase: "strict", weight: -0.12 },
+  { phrase: "only", weight: -0.08 },
+  { phrase: "must include", weight: -0.1, hard: true },
+  { phrase: "no surprises", weight: -0.14, hard: true },
+  { phrase: "predictable", weight: -0.08 },
+  { phrase: "safe picks", weight: -0.08 },
+  { phrase: "mainstream only", weight: -0.1 },
+  { phrase: "radio hits", weight: -0.08 },
+  { phrase: "family-friendly", weight: -0.08 },
+  { phrase: "clean", weight: -0.06 },
+  { phrase: "no explicit", weight: -0.1, hard: true },
+  { phrase: "json only", weight: -0.08 },
+  { phrase: "deterministic", weight: -0.14, hard: true },
+];
+
+const EXPLORATION_CUES = [
+  { phrase: "surprise me", weight: 0.14 },
+  { phrase: "deep cuts", weight: 0.14 },
+  { phrase: "hidden gems", weight: 0.14 },
+  { phrase: "experimental", weight: 0.12 },
+  { phrase: "obscure", weight: 0.1 },
+  { phrase: "left-field", weight: 0.1 },
+  { phrase: "adventurous", weight: 0.1 },
+  { phrase: "eclectic", weight: 0.1 },
+  { phrase: "underground", weight: 0.1 },
+  { phrase: "novel", weight: 0.08 },
+  { phrase: "fresh", weight: 0.08 },
+  { phrase: "unexpected", weight: 0.1 },
+  { phrase: "boundary-pushing", weight: 0.12 },
+];
+
+const INTENSITY_MODIFIERS = ["very", "super", "ultra", "extremely"];
+const HARD_CONSTRAINT_PATTERNS = [
+  /\bexactly\s+\d+\s+(songs?|tracks?)\b/i,
+  /\bmust be from\b/i,
+  /\bno artists repeated\b/i,
+];
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function escapeRegExp(input) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasIntensityModifierNearExplorationCue(text, cuePhrase) {
+  const cueStartWord = cuePhrase.split(/\s+/)[0];
+  const modifierPattern = INTENSITY_MODIFIERS.map(escapeRegExp).join("|");
+  const regex = new RegExp(
+    `\\b(?:${modifierPattern})\\b(?:\\W+\\w+){0,2}\\W+\\b${escapeRegExp(cueStartWord)}\\b`,
+    "i"
+  );
+  return regex.test(text);
+}
+
+function getTemperatureDecision(prompt) {
+  const text = String(prompt || "").toLowerCase();
+  let score = 0;
+  let hasHardPrecisionConstraint = false;
+  const matchedPrecisionCues = [];
+  const matchedExplorationCues = [];
+  const matchedHardConstraints = [];
+
+  for (const cue of PRECISION_CUES) {
+    if (text.includes(cue.phrase)) {
+      score += cue.weight;
+      matchedPrecisionCues.push(cue.phrase);
+      if (cue.hard) hasHardPrecisionConstraint = true;
+    }
+  }
+
+  for (const cue of EXPLORATION_CUES) {
+    if (text.includes(cue.phrase)) {
+      score += cue.weight;
+      matchedExplorationCues.push(cue.phrase);
+      if (hasIntensityModifierNearExplorationCue(text, cue.phrase)) {
+        score += 0.05;
+      }
+    }
+  }
+
+  for (const pattern of HARD_CONSTRAINT_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      matchedHardConstraints.push(match[0]);
+      hasHardPrecisionConstraint = true;
+      score -= 0.08;
+    }
+  }
+
+  const rawTemperature = BASELINE_TEMPERATURE + score;
+  const boundedTemperature = clamp(rawTemperature, MIN_TEMPERATURE, MAX_TEMPERATURE);
+  const temperature = hasHardPrecisionConstraint
+    ? Math.min(boundedTemperature, HARD_PRECISION_TEMPERATURE_CAP)
+    : boundedTemperature;
+
+  return {
+    temperature: Number(temperature.toFixed(2)),
+    score: Number(score.toFixed(2)),
+    matchedPrecisionCues,
+    matchedExplorationCues,
+    matchedHardConstraints,
+  };
+}
+
 router.post("/", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt || typeof prompt !== "string") {
@@ -18,13 +131,28 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    const { temperature, score, matchedPrecisionCues, matchedExplorationCues, matchedHardConstraints } = getTemperatureDecision(prompt);
+
+    console.debug("OpenAI temperature decision", {
+      temperature,
+      score,
+      precisionCueCount: matchedPrecisionCues.length,
+      explorationCueCount: matchedExplorationCues.length,
+      hardConstraintCount: matchedHardConstraints.length,
+      matchedCueCategories: {
+        precision: matchedPrecisionCues,
+        exploration: matchedExplorationCues,
+        hardConstraints: matchedHardConstraints,
+      },
+    });
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: prompt.trim() },
       ],
-      temperature: 0.7,
+      temperature,
     });
 
     const text = completion.choices[0]?.message?.content?.trim() || "{}";
