@@ -29,9 +29,6 @@ export default function PlaylistResults({
   // For row selection we use boolean values.
   const selectState: Record<string, boolean> = selectMap;
 
-  // We keep a derived `selected` property only for rendering the checkbox column.
-  const gridData = tracks.map((t) => ({ ...t, selected: !!selectMap[t.id] }));
-
   const handleSelectionChange = (event: GridSelectionChangeEvent) => {
     const next: Record<string, boolean> = {};
     for (const [id, value] of Object.entries(event.select)) {
@@ -56,7 +53,7 @@ export default function PlaylistResults({
 
   return (
     <KendoGrid
-      data={gridData}
+      data={tracks}
       dataItemKey="id"
       select={selectState}
       selectable={{
@@ -72,7 +69,7 @@ export default function PlaylistResults({
       aria-label="Playlist tracks. Use checkboxes to include or exclude songs."
     >
       <GridColumn
-        field="selected"
+        columnType="checkbox"
         title="Include"
         width="80px"
         filterable={false}
