@@ -41,12 +41,16 @@ export default function PlaylistResults({
 
   const showConfidence = tracks.some((t) => t.confidence !== undefined);
   const showReason = tracks.some((t) => t.reason?.trim());
+  const select = tracks.reduce<Record<string, boolean>>((acc, track) => {
+    if (track.selected) acc[track.id] = true;
+    return acc;
+  }, {});
 
   return (
     <KendoGrid
       data={tracks}
       dataItemKey="id"
-      selectedField="selected"
+      select={select}
       selectable={{
         enabled: true,
         mode: "multiple",
