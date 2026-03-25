@@ -64,7 +64,7 @@ export default function PlaylistResults({
       aria-label="Playlist tracks. Use checkboxes to include or exclude songs."
     >
       <GridColumn
-        field="selected"
+        columnType="checkbox"
         title="Include"
         width="80px"
         filterable={false}
