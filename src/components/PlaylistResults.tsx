@@ -6,12 +6,13 @@ import {
   GridSelectionChangeEvent,
   GridHeaderSelectionChangeEvent
 } from "@progress/kendo-react-grid";
-import type { SelectableTrack } from "../types/index";
+import type { Track } from "../types/index";
 import "./PlaylistResults.css";
 
 export interface PlaylistResultsProps {
-  tracks: SelectableTrack[];
-  onSelectionChange: (tracks: SelectableTrack[]) => void;
+  tracks: Track[];
+  selectMap: Record<string, boolean>;
+  onSelectionChange: (selectMap: Record<string, boolean>) => void;
 }
 
 /**
@@ -21,20 +22,28 @@ export interface PlaylistResultsProps {
 
 export default function PlaylistResults({
   tracks,
+  selectMap,
   onSelectionChange,
 }: PlaylistResultsProps) {
+  // Kendo expects `select` to be a `SelectDescriptor` shape: { [id: string]: boolean | number[] }.
+  // For row selection we use boolean values.
+  const selectState: Record<string, boolean> = selectMap;
+
   const handleSelectionChange = (event: GridSelectionChangeEvent) => {
-    const updated = tracks.map((track) =>
-      track.id === event.dataItem.id ? { ...track, selected: !track.selected } : track
-    );
-    onSelectionChange(updated);
+    const next: Record<string, boolean> = {};
+    for (const [id, value] of Object.entries(event.select)) {
+      next[id] = Array.isArray(value) ? value.length > 0 : !!value;
+    }
+    onSelectionChange(next);
   };
 
-  const handleHeaderSelectionChange = (_event: GridHeaderSelectionChangeEvent) => {
-    const allSelected = tracks.every((t) => t.selected);
-    const newSelected = !allSelected;
-    const updated = tracks.map((track) => ({ ...track, selected: newSelected }));
-    onSelectionChange(updated);
+  const handleHeaderSelectionChange = (event: GridHeaderSelectionChangeEvent) => {
+    // Use the event-provided `select` descriptor to avoid computing logic in two places.
+    const next: Record<string, boolean> = {};
+    for (const [id, value] of Object.entries(event.select)) {
+      next[id] = Array.isArray(value) ? value.length > 0 : !!value;
+    }
+    onSelectionChange(next);
   };
 
   if (tracks.length === 0) return null;
@@ -46,7 +55,7 @@ export default function PlaylistResults({
     <KendoGrid
       data={tracks}
       dataItemKey="id"
-      selectedField="selected"
+      select={selectState}
       selectable={{
         enabled: true,
         mode: "multiple",
@@ -60,12 +69,12 @@ export default function PlaylistResults({
       aria-label="Playlist tracks. Use checkboxes to include or exclude songs."
     >
       <GridColumn
-        field="selected"
+        columnType="checkbox"
         title="Include"
         width="80px"
         filterable={false}
         sortable={false}
-        headerSelectionValue={tracks.every((t) => t.selected)}
+        headerSelectionValue={tracks.every((t) => !!selectMap[t.id])}
       />
       <GridColumn
         field="title"

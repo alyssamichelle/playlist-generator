@@ -19,11 +19,7 @@ import {
   getUserPlaylists,
 } from "./api/client";
 import type { SpotifyStatus, SpotifyPlaylist } from "./api/client";
-import type { Track, SelectableTrack } from "./types";
-
-function toSelectableTrack(t: Track): SelectableTrack {
-  return { ...t, selected: true };
-}
+import type { Track } from "./types";
 
 /** Fallback when the API does not return playlistTitle (older models / parse quirks). */
 function titleFromPrompt(prompt: string): string {
@@ -43,7 +39,8 @@ const ErrorMessage = ({ message }: { message: string | null }) => {
 };
 
 export default function Home() {
-  const [tracks, setTracks] = useState<SelectableTrack[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [selectMap, setSelectMap] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
@@ -91,8 +88,17 @@ useEffect(() => {
     try {
       const { tracks: generated, playlistTitle } = await generateTracks(prompt);
       const newTracks = await resolveTracksWithSpotify(generated);
-      const selectable = newTracks.map(toSelectableTrack);
-      setTracks((prev) => (appendMode ? [...prev, ...selectable] : selectable));
+      if (appendMode) {
+        setTracks((prev) => [...prev, ...newTracks]);
+        setSelectMap((prev) => {
+          const next = { ...prev };
+          for (const t of newTracks) next[t.id] = true;
+          return next;
+        });
+      } else {
+        setTracks(newTracks);
+        setSelectMap(Object.fromEntries(newTracks.map((t) => [t.id, true])));
+      }
       const suggestedName = playlistTitle?.trim() || titleFromPrompt(prompt);
       setPlaylistName((prev) => {
         if (!appendMode) return suggestedName;
@@ -105,12 +111,12 @@ useEffect(() => {
     }
   }, [appendMode]);
 
-  const handleSelectionChange = useCallback((updated: SelectableTrack[]) => {
-    setTracks(updated);
+  const handleSelectionChange = useCallback((nextSelectMap: Record<string, boolean>) => {
+    setSelectMap(nextSelectMap);
   }, []);
 
   const handleCreatePlaylist = useCallback(async () => {
-    const selected = tracks.filter((t) => t.selected);
+    const selected = tracks.filter((t) => !!selectMap[t.id]);
     if (selected.length === 0) {
       setError("Select at least one song.");
       return;
@@ -134,10 +140,10 @@ useEffect(() => {
     } finally {
       setCreatingPlaylist(false);
     }
-  }, [tracks, playlistMode, selectedPlaylist, playlistName, userPlaylists]);
+  }, [tracks, selectMap, playlistMode, selectedPlaylist, playlistName, userPlaylists]);
 
   const hasTracks = tracks.length > 0 && !embedUrl;
-  const selectedCount = tracks.filter((t) => t.selected).length;
+  const selectedCount = tracks.reduce((count, t) => count + (selectMap[t.id] ? 1 : 0), 0);
 
   return (
     <>
@@ -246,7 +252,11 @@ useEffect(() => {
               {selectedCount} of {tracks.length} songs selected. Uncheck any you want to exclude.
             </p>
 
-            <PlaylistResults tracks={tracks} onSelectionChange={handleSelectionChange} />
+            <PlaylistResults
+              tracks={tracks}
+              selectMap={selectMap}
+              onSelectionChange={handleSelectionChange}
+            />
 
             <PlaylistActions
               spotifyAuthed={spotifyStatus.authenticated}
