@@ -64,10 +64,12 @@ export default function PlaylistResults({
       }}
       onSelectionChange={handleSelectionChange}
       onHeaderSelectionChange={handleHeaderSelectionChange}
-      sortable
+      sortable={true}
+      navigatable={true}
       style={{ maxHeight: "50rem" }}
       aria-label="Playlist tracks. Use checkboxes to include or exclude songs."
     >
+
       <GridColumn
         columnType="checkbox"
         title="Include"
