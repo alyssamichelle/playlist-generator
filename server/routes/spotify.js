@@ -87,7 +87,7 @@ router.get("/status", async (req, res) => {
     return res.json({
       authenticated: true,
       isCompanyAccount: true,
-      displayName: "Kendo UI's Spotify",
+      displayName: "Alyssa Nicoll's Spotify",
     });
   }
 
